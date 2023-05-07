@@ -1,10 +1,12 @@
 /**** Giới thiệu code ***************
  *  Code sử dụng biến giới hạn là 25 cm để xác định khoảng cách cần dừng.
  *  Khi ta muốn thay đổi khoảng cách, ta thay đổi tham số "gioihan" đang để mặc định là 25. ( đơn vị cm)
- *  Xe ưu tiên rẽ trái trong các trường  hợp phía trước có vật cản. 
- *  Ví dụ: khi khoang cách phía trước <25 , cảm biến đo bên trái trước, nếu không có vật cản thì xe rẽ trái. nếu bên trái cũng có vật cản
- *  lúc đó xe mới kiểm tra bên phải.
- *  Khi cả phía trước, trái ,phải đều có chướng ngại vật. xe đi lùi 1 đoạn, sau đó đo lại khoảng cách. ....
+  *  Xe ban đầu được đặt trạng thái UP, mục tiêu cuối cùng là trạng thái UP
+ *  Khi gặp vật cản, xe tính khoảng cách hai bên trái phải, chọn bên có khoảng cách ngắn hơn, cập nhật trạng thái mới LEFT/RIGHT
+ *  Khi ở trạng thái LEFT/RIGHT, xe sẽ dò phái trước và bên phải/trái, nếu bên phải/trái đi được thì rẽ sang hướng đó, cập nhật lại trạng thái mới
+ *  Nếu không thì tiếp tục đi thẳng cho đến khi tìm được đường rẽ, nếu không đi thẳng được nữa thì xe quay đầu, dò hướng ngược lại
+ *  Việc dò đường lặp đi lặp lại cho đến khi đến đích
+ *  Các hàm tính khoảng cách, đi sang trái phải hay quay đầu cần thực hiện tinh chỉnh trên board Khi cả phía trước, trái ,phải đều có chướng ngại vật. xe đi lùi 1 đoạn, sau đó đo lại khoảng cách. ....
  */
 
 #include <Servo.h>
@@ -18,9 +20,9 @@ enum car_status {
 /******** khai báo chân input/output**************/
 const int trig = 6;     // chân trig của SRF-05.
 const int echo = 5;     // chân echo của SRF-05.
-int tien1=10;           // chân IN - A của Module L298. banh trai
-int tien2=11;           // chân IN - C của Module L298. banh phai
-int lui1=12;            // chân IN - D của Module L298. banh trai
+int tien1=10;           // chân IN - A của Module L298.
+int tien2=12;           // chân IN - C của Module L298. banh phai
+int lui1=11;            // chân IN - D của Module L298. banh trai
 int lui2=13;            // chân IN - B của Module L298. banh phai
 int dongcoservo=9;      // chân Orange của Servo.
 
@@ -32,7 +34,7 @@ int i;
 int x=0;
 unsigned long thoigian; // biến đo thời gian
 int khoangcach;           // biến lưu khoảng cách
-int khoangcachtrai,khoangcachphai;
+int khoangcachtrai, khoangcachphai;
 
 /*********** protoype **************************/
 void resetdongco();
@@ -54,34 +56,34 @@ void setup() {
     myservo.attach(dongcoservo);  // attaches the servo on pin 9 to the servo object
     pinMode(trig,OUTPUT);   // chân trig sẽ phát tín hiệu
     pinMode(echo,INPUT);    // chân echo sẽ nhận tín hiệu
-    pinMode(tien1,OUTPUT); 
-    pinMode(tien2,OUTPUT); 
-    pinMode(lui1,OUTPUT); 
-    pinMode(lui2,OUTPUT); 
+    pinMode(tien1,OUTPUT);
+    pinMode(tien2,OUTPUT);
+    pinMode(lui1,OUTPUT);
+    pinMode(lui2,OUTPUT);
 
     resetdongco();
    // Serial.begin(9600);
     resetservo();
-    khoangcach = 0;    
+    khoangcach = 0;
     delay(500);
 }
 
 void loop()
 {
-    if (my_status == UP) // thay bang while loop
+    if(my_status == UP) // thay bang while loop
     {
       dokhoangcach();
-      if(khoangcach > gioihanduoi || khoangcach == 0) 
+      if(khoangcach > gioihanduoi || khoangcach == 0)
       {
         dokhoangcach();
-        if(khoangcach > gioihanduoi || khoangcach == 0) 
+        if(khoangcach > gioihanduoi || khoangcach == 0)
         {
-          dithang();   
-        }   
+          dithang();
+        }
       }
       else
-      {      
-        quaycbsangtrai();  
+      {
+        quaycbsangtrai();
         khoangcachtrai=khoangcach;
         quaycbsangphai();
         khoangcachphai=khoangcach;
@@ -106,7 +108,7 @@ void loop()
         }
       }
     }
-    if (my_status == LEFT) // while loop ?
+    if(my_status == LEFT) // while loop ?
     {
       dokhoangcach();
       if(khoangcach > gioihanduoi || khoangcach == 0) 
@@ -122,28 +124,28 @@ void loop()
             disangphai();
             my_status = UP;
             delay(500);
-          }  
+          }
         }
-        else 
+        else
         {
           dithang();
-          delay(500);   
+          delay(500);
         }
       }
       else
-      {      
+      {
         quaydau();
         my_status = RIGHT;
         delay(500);
       }
     }
-    if (my_status == RIGHT)
+    if(my_status == RIGHT)
     {
       dokhoangcach();
-      if(khoangcach > gioihanduoi || khoangcach == 0) 
+      if(khoangcach > gioihanduoi || khoangcach == 0)
       {
         dokhoangcach(); // khoang cach phia truoc
-        if(khoangcach > gioihanduoi || khoangcach == 0) 
+        if(khoangcach > gioihanduoi || khoangcach == 0)
         {
           quaycbsangtrai();
           if(khoangcach > gioihanduoi)
@@ -153,16 +155,16 @@ void loop()
             disangtrai();
             my_status = UP;
             delay(500);
-          }  
+          }
         }
-        else 
+        else
         {
           dithang();
-          delay(500);   
+          delay(500);
         }
       }
       else
-      {      
+      {
         quaydau();
         my_status = LEFT;
         delay(500);
@@ -194,15 +196,15 @@ void dokhoangcach()
     digitalWrite(trig,0);   // tắt chân trig
     
     /* Tính toán thời gian */
-    // Đo độ rộng xung HIGH ở chân echo. 
-    thoigian = pulseIn(echo,HIGH);  
+    // Đo độ rộng xung HIGH ở chân echo.
+    thoigian = pulseIn(echo,HIGH);
     // Tính khoảng cách đến vật.
     khoangcach = int(thoigian/2/29.412);
 }
 
 /**************** Di chuyen xe ********************/
 void dithang()
-{ 
+{
         digitalWrite(tien1,HIGH);
         digitalWrite(tien2,HIGH);
         //delay(2); 
@@ -213,7 +215,7 @@ void disangtrai() // quay trai
   resetdongco();
   digitalWrite(lui1,HIGH);
   delay(250); // chinh delay sao cho xe quay trai 90 do
-  digitalWrite(lui1,LOW);    
+  digitalWrite(lui1,LOW);
 }
 
 void disangphai() // quay phai
@@ -227,7 +229,7 @@ void disangphai() // quay phai
 void dilui()
 {
   resetdongco();
-  for(i=0;i<20;i++);    
+  for(i=0;i<20;i++); // ?
   digitalWrite(lui1,HIGH);
   digitalWrite(lui2,HIGH);
   delay(700); // chinh delay sao cho xe lui hop ly
@@ -238,11 +240,11 @@ void dilui()
 void quaydau()
 {
   dilui();
-  if (my_status == LEFT)
+  if(my_status == LEFT)
   {
     disangtrai();
     delay(500);
-    disangtrai();    
+    disangtrai();
   }
   else
   {
