@@ -70,6 +70,8 @@ void setup() {
 
     destinationPosition.x = 0;
     destinationPosition.y = 50;
+    currentPosition.x = 0;
+    currentPosition.y = 0;
 
    // Serial.begin(9600);
     myservo.write(90);    
@@ -79,6 +81,8 @@ void setup() {
 void loop() 
 {   
     findWay();
+    //dilui();
+    //dithang();
     //avoidObstacle();
     //Serial.println(khoangcach);
 }
@@ -131,8 +135,7 @@ void avoidObstacle()
 }
 
 void dithang()
-{ 
-    
+{  
     resetdongco(); 
     analogWrite(tien1, 255);
     analogWrite(tien2, 255);
@@ -141,7 +144,7 @@ void dithang()
     currentPosition.x += deltaMove * cos(curArgRad);
     currentPosition.y += deltaMove * sin(curArgRad);
     float time = (deltaMove/ velocity) * 1000;
-    Serial.print("go ahead");
+    Serial.print("Go ahead ");
     Serial.print(time);
     Serial.println("ms");
     delay(time); 
@@ -200,6 +203,9 @@ void dokhoangcach()
     thoigian = pulseIn(echo,HIGH);  
     // Tính khoảng cách đến vật.
     khoangcach = int(thoigian/2/29.412);
+
+    Serial.print(" Distances: ");
+    Serial.println(khoangcach); 
 }
 
 /*********** chương trình quay cảm biến xang trái *********/
@@ -221,9 +227,9 @@ void quaycbsangphai()
 
 void rotateServo(float angle)
 {
-    myservo.write(angle);              // tell servo to go to position in variable 'pos'
+    //myservo.write(angle);              // tell servo to go to position in variable 'pos'
     Serial.print("Rote servo  angle: ");
-    Serial.println(angle); // tell servo to go to position in variable
+    Serial.print(angle); // tell servo to go to position in variable
     delay(1000);
     dokhoangcach();
 }
@@ -263,10 +269,16 @@ void turn(float angle)
 
 void findWay()
 {
+    if(abs(currentPosition.x - destinationPosition.x) < 1 && abs(currentPosition.y - destinationPosition.y) < 1)
+    {
+        Serial.println("Here");
+        return;
+    }
+
     //resetservo();
     int angle = 0;
     float distance = 1000;
-    int samples = 180 / deltaMove;
+    int samples = 180 / deltaAngle + 1; 
     int arrayDistance[samples]; 
     int arrayAngle[samples]; 
 
@@ -291,9 +303,9 @@ void findWay()
     for (i = 0; i < samples; i++)
     {
         struct Position tmpPos;
-        float curArgRad = currentAngle * (PI / 180);
-        tmpPos.x = currentPosition.x * cos(curArgRad);
-        tmpPos.y = currentPosition.y * sin(curArgRad);
+        float curArgRad = arrayAngle[i] * (PI / 180);
+        tmpPos.x = currentPosition.x +  deltaMove* cos(curArgRad);
+        tmpPos.y = currentPosition.y +  deltaMove* sin(curArgRad);
         float minDist = calculateDistance(tmpPos, destinationPosition);
         if (minDist < distance && arrayDistance[i] > gioihan && arrayDistance[i] < 1000)
         {
@@ -308,6 +320,10 @@ void findWay()
     
     Serial.print("Distance:");
     Serial.println(distance);
+    Serial.print("Current pos x:");
+    Serial.println(currentPosition.x);
+    Serial.print("Current pos y:");
+    Serial.println(currentPosition.y);
     if(distance >= 1000 || (arrayAngle[index] > 180 || arrayAngle[index] < 0))
     {
         turnBackward();
@@ -315,6 +331,7 @@ void findWay()
     else
     {
         angle = arrayAngle[index];
+        currentAngle = angle;
         turn(angle);
         dithang();
     }
@@ -323,7 +340,7 @@ void findWay()
 
 void turnBackward()
 {
-    Serial.print("Turn backward");
+    Serial.println("Turn backward");
     resetdongco(); 
     analogWrite(lui1, 255);
     analogWrite(lui2, 255);
