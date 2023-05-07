@@ -1,19 +1,17 @@
 /**** Giới thiệu code ***************
  *  Code sử dụng biến giới hạn là 25 cm để xác định khoảng cách cần dừng.
  *  Khi ta muốn thay đổi khoảng cách, ta thay đổi tham số "gioihan" đang để mặc định là 25. ( đơn vị cm)
- *  Xe ban đầu được đặt trạng thái UP, mục tiêu cuối cùng là trạng thái UP
- *  Khi gặp vật cản, xe tính khoảng cách hai bên trái phải, chọn bên có khoảng cách ngắn hơn, cập nhật trạng thái mới LEFT/RIGHT
- *  Khi ở trạng thái LEFT/RIGHT, xe sẽ dò phái trước và bên phải/trái, nếu bên phải/trái đi được thì rẽ sang hướng đó, cập nhật lại trạng thái mới
- *  Nếu không thì tiếp tục đi thẳng cho đến khi tìm được đường rẽ, nếu không đi thẳng được nữa thì xe quay đầu, dò hướng ngược lại
- *  Việc dò đường lặp đi lặp lại cho đến khi đến đích
- *  Các hàm tính khoảng cách, đi sang trái phải hay quay đầu cần thực hiện tinh chỉnh trên board
+ *  Xe ưu tiên rẽ trái trong các trường  hợp phía trước có vật cản. 
+ *  Ví dụ: khi khoang cách phía trước <25 , cảm biến đo bên trái trước, nếu không có vật cản thì xe rẽ trái. nếu bên trái cũng có vật cản
+ *  lúc đó xe mới kiểm tra bên phải.
+ *  Khi cả phía trước, trái ,phải đều có chướng ngại vật. xe đi lùi 1 đoạn, sau đó đo lại khoảng cách. ....
  */
 
 #include <Servo.h>
 Servo myservo;  // create servo object to control a servo
 //int pos = 0;    // variable to store the servo position
 
-enum car_status { // Trạng thái của xe
+enum car_status {
   UP, LEFT, RIGHT
 };
 
@@ -40,13 +38,13 @@ int khoangcachtrai,khoangcachphai;
 void resetdongco();
 void resetservo();
 
-void dokhoangcach(); // Cần tinh chỉnh cho phù họp với thực tế trên board
+void dokhoangcach();
 
 void dithang();
-void disangtrai(); // Ở đây cũng thế
-void disangphai(); // Đây cũng thế
+void disangtrai();
+void disangphai();
 void dilui();
-void quaydau(); // Đây nữa
+void quaydau();
 
 void quaycbsangphai();
 void quaycbsangtrai();
@@ -81,7 +79,7 @@ void loop()
           dithang();   
         }   
       }
-      esle
+      else
       {      
         quaycbsangtrai();  
         khoangcachtrai=khoangcach;
@@ -132,7 +130,7 @@ void loop()
           delay(500);   
         }
       }
-      esle
+      else
       {      
         quaydau();
         my_status = RIGHT;
@@ -163,7 +161,7 @@ void loop()
           delay(500);   
         }
       }
-      esle
+      else
       {      
         quaydau();
         my_status = LEFT;
