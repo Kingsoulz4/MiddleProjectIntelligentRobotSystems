@@ -35,7 +35,7 @@ int x=0;
 unsigned long thoigian; // biến đo thời gian
 int khoangcach;           // biến lưu khoảng cách
 int khoangcachtrai,khoangcachphai;
-float velocity = (float) 220/3;
+float velocity = (float) 88/3;
 float angular_velocity = (float)52/15;
 float deltaAngle = 45;
 float deltaMove = 5;
@@ -69,7 +69,7 @@ void setup() {
     digitalWrite(lui1,LOW);
 
     destinationPosition.x = 0;
-    destinationPosition.y = 50;
+    destinationPosition.y = 1000;
     currentPosition.x = 0;
     currentPosition.y = 0;
 
@@ -81,8 +81,10 @@ void setup() {
 void loop() 
 {   
     findWay();
-    //dilui();
+    //turnBackward();
     //dithang();
+    //dilui();
+    //turnBackward();
     //avoidObstacle();
     //Serial.println(khoangcach);
 }
@@ -137,8 +139,8 @@ void avoidObstacle()
 void dithang()
 {  
     resetdongco(); 
-    analogWrite(tien1, 255);
-    analogWrite(tien2, 255);
+    digitalWrite(tien1, HIGH);
+    digitalWrite(tien2, HIGH);
     //delay time for moving 1cm t = s/v
     float curArgRad = currentAngle * (PI / 180);
     currentPosition.x += deltaMove * cos(curArgRad);
@@ -183,8 +185,8 @@ void dilui()
 
 void resetdongco()
 {
-    analogWrite(tien1,0);
-    analogWrite(tien2,0);
+    digitalWrite(tien1,LOW);
+    digitalWrite(tien2,LOW);
     digitalWrite(lui1,LOW);
     digitalWrite(lui2,LOW);
 }
@@ -227,7 +229,7 @@ void quaycbsangphai()
 
 void rotateServo(float angle)
 {
-    //myservo.write(angle);              // tell servo to go to position in variable 'pos'
+    myservo.write(angle);              // tell servo to go to position in variable 'pos'
     Serial.print("Rote servo  angle: ");
     Serial.print(angle); // tell servo to go to position in variable
     delay(1000);
@@ -251,7 +253,7 @@ void turn(float angle)
         Serial.print("turn right ");
         Serial.println(angle);
         resetdongco();
-        analogWrite(tien1,255);
+        digitalWrite(tien1,HIGH);
         delay(time);
         
     }
@@ -260,11 +262,13 @@ void turn(float angle)
         Serial.print("turn left ");
         Serial.println(angle);
         resetdongco();
-        analogWrite(tien2,255);
+        digitalWrite(tien2,HIGH);
         delay(time);
         
     }
+    
     resetdongco();
+    delay(250);
 }
 
 void findWay()
@@ -342,8 +346,8 @@ void turnBackward()
 {
     Serial.println("Turn backward");
     resetdongco(); 
-    analogWrite(lui1, 255);
-    analogWrite(lui2, 255);
+    digitalWrite(lui1, HIGH);
+    digitalWrite(lui2, HIGH);
     //delay time for moving 1cm t = s/v
     float time = (deltaMove / velocity) * 1000;
     float curArgRad = currentAngle * (PI / 180);
