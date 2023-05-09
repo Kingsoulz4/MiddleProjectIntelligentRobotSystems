@@ -156,8 +156,7 @@ void dithang()
     Serial.print(time);
     Serial.println("ms");
     delay(time);
-    resetdongco(); 
-    turn(100);
+    resetdongco();  
 }
 
 void disangtrai()
@@ -314,7 +313,7 @@ void findWay()
     for (i = 0; i < samples; i++)
     {
         struct Position tmpPos;
-        float curArgRad = (arrayAngle[i]) * (PI / 180);
+        float curArgRad = (currentAngle + arrayAngle[i] - 90) * (PI / 180);
         tmpPos.x = currentPosition.x +  deltaMove* cos(curArgRad);
         tmpPos.y = currentPosition.y +  deltaMove* sin(curArgRad);
         float minDist = calculateDistance(tmpPos, destinationPosition);
@@ -342,7 +341,7 @@ void findWay()
     else
     {
         angle = arrayAngle[index];
-        currentAngle = angle;
+        currentAngle += angle - 90;
         turn(angle);
         dithang();
     }
