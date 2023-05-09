@@ -81,6 +81,12 @@ void setup() {
 void loop() 
 {   
     findWay();
+    // turn(45);
+    // delay(500);
+    // turn(135);
+    // delay(500);
+    // dithang();
+    // delay(500);
     //turnBackward();
     //dithang();
     //dilui();
@@ -90,8 +96,8 @@ void loop()
 }
 
 void avoidObstacle()
-{
-    khoangcach=0;
+{                              
+    khoangcach=0;                                                                        
     dokhoangcach();
 
     Serial.print("Khoảng cách: ");
@@ -149,8 +155,9 @@ void dithang()
     Serial.print("Go ahead ");
     Serial.print(time);
     Serial.println("ms");
-    delay(time); 
+    delay(time);
     resetdongco(); 
+    turn(100);
 }
 
 void disangtrai()
@@ -247,7 +254,7 @@ void turn(float angle)
     resetdongco(); 
     float angleOnWheel = (angle/360)*4;
     float roundOnWheel = angle/360;
-    float time = (roundOnWheel / angular_velocity) * 1000;
+    float time = (roundOnWheel / angular_velocity) * 1000 * 4;
     if(angle < 90)
     {
         Serial.print("turn right ");
@@ -263,7 +270,7 @@ void turn(float angle)
         Serial.println(angle);
         resetdongco();
         digitalWrite(tien2,HIGH);
-        delay(time);
+        delay(time / 3);
         
     }
     
@@ -307,7 +314,7 @@ void findWay()
     for (i = 0; i < samples; i++)
     {
         struct Position tmpPos;
-        float curArgRad = arrayAngle[i] * (PI / 180);
+        float curArgRad = (arrayAngle[i]) * (PI / 180);
         tmpPos.x = currentPosition.x +  deltaMove* cos(curArgRad);
         tmpPos.y = currentPosition.y +  deltaMove* sin(curArgRad);
         float minDist = calculateDistance(tmpPos, destinationPosition);
