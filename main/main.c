@@ -38,11 +38,11 @@ int lui1=11;            // chân IN - D của Module L298.
 int lui2=13;            // chân IN - B của Module L298.
 int dongcoservo=9;      // chân Orange của Servo.
 
-int gioihan = 15;
+int limitThreshold = 15;
 int i;
 int x=0;
-unsigned long thoigian; // biến đo thời gian
-int khoangcach;           // biến lưu khoảng cách
+unsigned long timeCollideObstacle; // biến đo thời gian
+int distanceToObstacle;           // biến lưu khoảng cách
 int khoangcachtrai,khoangcachphai;
 float velocity = (float) 220/3;
 float angular_velocity = (float)52/15;
@@ -53,11 +53,11 @@ struct Position currentPosition;
 struct Position destinationPos; 
 
 void dokhoangcach();
-void dithang(int duongdi);
+void goAhead(int duongdi);
 void disangtrai();
 void disangphai();
 void dilui();
-void resetdongco();
+void resetWheels();
 void quaycbsangphai();
 void quaycbsangtrai();
 void setup() {
@@ -92,32 +92,32 @@ void loop()
 
 void avoidObstacle()
 {
-    khoangcach=0;
+    distanceToObstacle=0;
     dokhoangcach();
 
     Serial.print("Khoảng cách: ");
-    Serial.print(khoangcach);
+    Serial.print(distanceToObstacle);
     Serial.println("cm");
     
-    if(khoangcach>gioihan||khoangcach==0) 
+    if(distanceToObstacle>limitThreshold||distanceToObstacle==0) 
     {
       dokhoangcach();
-       if(khoangcach>gioihan||khoangcach==0) 
+       if(distanceToObstacle>limitThreshold||distanceToObstacle==0) 
         {
-          dithang();
+          goAhead();
           delay(500); 
         }   
     }
     else
     {
       
-      resetdongco();
+      resetWheels();
       quaycbsangtrai();
       
-      khoangcachtrai=khoangcach;
+      khoangcachtrai=distanceToObstacle;
      
       quaycbsangphai();
-      khoangcachphai=khoangcach;
+      khoangcachphai=distanceToObstacle;
       if(khoangcachphai<10&&khoangcachtrai<10){
         dilui();
       }
@@ -137,7 +137,7 @@ void avoidObstacle()
     }
 }
 
-void dithang()
+void goAhead()
 { 
     // Serial.println("go ahead");
     // resetdongco();
@@ -145,7 +145,7 @@ void dithang()
     // analogWrite(tien2,255);
     //delay(2);
     //unit = 1cm
-    resetdongco(); 
+    resetWheels(); 
     analogWrite(tien1, 255);
     analogWrite(tien2, 255);
     //delay time for moving 1cm t = s/v
@@ -160,7 +160,7 @@ void dithang()
 void disangtrai()
 {
   Serial.println("turn left");
-  resetdongco();
+  resetWheels();
   digitalWrite(lui1,HIGH);
   delay(250);
   digitalWrite(lui1,LOW);
@@ -170,7 +170,7 @@ void disangtrai()
 void disangphai()
 {
   Serial.println("turn right");
-   resetdongco();
+   resetWheels();
   digitalWrite(lui2,HIGH);
   delay(250);
   digitalWrite(lui2,LOW);
@@ -180,7 +180,7 @@ void disangphai()
 void dilui()
 {
   Serial.println("step backward");
-  resetdongco();
+  resetWheels();
   for(i=0;i<20;i++)
     
         digitalWrite(lui1,HIGH);
@@ -191,7 +191,7 @@ void dilui()
     digitalWrite(lui2,LOW);
 }
 
-void resetdongco()
+void resetWheels()
 {
     analogWrite(tien1,0);
     analogWrite(tien2,0);
@@ -210,9 +210,9 @@ void dokhoangcach()
     
     /* Tính toán thời gian */
     // Đo độ rộng xung HIGH ở chân echo. 
-    thoigian = pulseIn(echo,HIGH);  
+    timeCollideObstacle = pulseIn(echo,HIGH);  
     // Tính khoảng cách đến vật.
-    khoangcach = int(thoigian/2/29.412);
+    distanceToObstacle = int(thoigian/2/29.412);
     
 
 }
@@ -252,14 +252,14 @@ void resetservo()
 
 void turn(float angle)
 {
-    resetdongco(); 
+    resetWheels(); 
     float angleOnWheel = (angle/360)*4;
     float roundOnWheel = angle/360;
     float time = (roundOnWheel / angular_velocity) * 1000;
     if(angle < 90)
     {
         Serial.println("turn right");
-        resetdongco();
+        resetWheels();
         digitalWrite(tien1,HIGH);
         delay(time);
         digitalWrite(tien1,LOW);
@@ -267,7 +267,7 @@ void turn(float angle)
     else if (angle > 90)
     {
         Serial.println("turn right");
-        resetdongco();
+        resetWheels();
         digitalWrite(tien2,HIGH);
         delay(time);
         digitalWrite(tien2,LOW);
@@ -308,7 +308,7 @@ void findWay()
 
 void turnBackward()
 {
-    resetdongco(); 
+    resetWheels(); 
     analogWrite(lui1, 255);
     analogWrite(lui2, 255);
     //delay time for moving 1cm t = s/v

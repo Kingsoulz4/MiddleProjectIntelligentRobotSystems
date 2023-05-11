@@ -1,13 +1,4 @@
 
-/**** Giới thiệu code ***************
- *  Code sử dụng biến giới hạn là 25 cm để xác định khoảng cách cần dừng.
- *  Khi ta muốn thay đổi khoảng cách, ta thay đổi tham số "gioihan" đang để mặc định là 25. ( đơn vị cm)
- *  Xe ưu tiên rẽ trái trong các trường  hợp phía trước có vật cản. 
- *  Ví dụ: khi khoang cách phía trước <25 , cảm biến đo bên trái trước, nếu không có vật cản thì xe rẽ trái. nếu bên trái cũng có vật cản
- *  lúc đó xe mới kiểm tra bên phải.
- *  Khi cả phía trước, trái ,phải đều có chướng ngại vật. xe đi lùi 1 đoạn, sau đó đo lại khoảng cách. ....
- */
-
 #include <Servo.h>
 
 #define PI 3.1415926535897932384626433832795
@@ -29,28 +20,21 @@ int lui1=11;            // chân IN - D của Module L298.
 int lui2=13;            // chân IN - B của Module L298.
 int dongcoservo=9;      // chân Orange của Servo.
 
-int gioihan = 25;
+int limitThreshold = 25;
 int i;
-int x=0;
-unsigned long thoigian; // biến đo thời gian
-int khoangcach;           // biến lưu khoảng cách
-int khoangcachtrai,khoangcachphai;
+unsigned long timeCollideObstacle; 
+int distanceToObstacle;           
 float velocity = (float) 88/3;
 float angular_velocity = (float)52/15;
-float deltaAngle = 45;
+float deltaAngle = 30;
 float deltaMove = 5;
+int rangeView = 1;
 float currentAngle = 90;
+float angleCollideObstacle = -1;
 struct Position currentPosition;
 struct Position destinationPosition; 
 
-void dokhoangcach();
-void dithang(int duongdi);
-void disangtrai();
-void disangphai();
-void dilui();
-void resetdongco();
-void quaycbsangphai();
-void quaycbsangtrai();
+void resetWheels();
 
 void setup() {
     Serial.begin(9600); //Mở cổng Serial ở 9600
@@ -95,56 +79,10 @@ void loop()
     //Serial.println(khoangcach);
 }
 
-void avoidObstacle()
-{                              
-    khoangcach=0;                                                                        
-    dokhoangcach();
 
-    Serial.print("Khoảng cách: ");
-    Serial.print(khoangcach);
-    Serial.println("cm");
-    
-    if(khoangcach>gioihan||khoangcach==0) 
-    {
-      dokhoangcach();
-       if(khoangcach>gioihan||khoangcach==0) 
-        {
-          dithang();
-          delay(500); 
-        }   
-    }
-    else
-    {
-      
-      resetdongco();
-      quaycbsangtrai();
-      
-      khoangcachtrai=khoangcach;
-     
-      quaycbsangphai();
-      khoangcachphai=khoangcach;
-      if(khoangcachphai<10&&khoangcachtrai<10){
-        dilui();
-      }
-      else
-      {
-        if(khoangcachphai>khoangcachtrai) 
-        {
-          disangtrai();
-          delay(500);
-        }
-        if(khoangcachphai<khoangcachtrai) 
-        {
-          disangphai();
-          delay(500);
-        }
-      }
-    }
-}
-
-void dithang()
+void goAhead()
 {  
-    resetdongco(); 
+    resetWheels(); 
     digitalWrite(tien1, HIGH);
     digitalWrite(tien2, HIGH);
     //delay time for moving 1cm t = s/v
@@ -156,40 +94,13 @@ void dithang()
     Serial.print(time);
     Serial.println("ms");
     delay(time);
-    resetdongco();  
+    digitalWrite(tien1, LOW);
+    delay(time/8);
+    digitalWrite(tien2, LOW);
+    resetWheels();  
 }
 
-void disangtrai()
-{
-    Serial.println("turn left");
-    resetdongco();
-    digitalWrite(lui1,HIGH);
-    delay(250);
-    digitalWrite(lui1,LOW);
-}
-void disangphai()
-{
-    Serial.println("turn right");
-    resetdongco();
-    digitalWrite(lui2,HIGH);
-    delay(250);
-    digitalWrite(lui2,LOW);
-}
-
-void dilui()
-{
-    Serial.println("step backward");
-    resetdongco();
-    for(i=0;i<20;i++)
-        digitalWrite(lui1,HIGH);
-        digitalWrite(lui2,HIGH);
-        delay(700);
-        
-        digitalWrite(lui1,LOW);
-        digitalWrite(lui2,LOW);
-}
-
-void resetdongco()
+void resetWheels()
 {
     digitalWrite(tien1,LOW);
     digitalWrite(tien2,LOW);
@@ -197,7 +108,7 @@ void resetdongco()
     digitalWrite(lui2,LOW);
 }
 /******** chương trình đo khoảng cách SRF04 ***************/
-void dokhoangcach()
+void detectObstacle()
 {
     /* Phát xung từ chân trig */
     digitalWrite(trig,0);   // tắt chân trig
@@ -208,29 +119,12 @@ void dokhoangcach()
     
     /* Tính toán thời gian */
     // Đo độ rộng xung HIGH ở chân echo. 
-    thoigian = pulseIn(echo,HIGH);  
+    timeCollideObstacle = pulseIn(echo,HIGH);  
     // Tính khoảng cách đến vật.
-    khoangcach = int(thoigian/2/29.412);
+    distanceToObstacle = int(timeCollideObstacle/2/29.412);
 
     Serial.print(" Distances: ");
-    Serial.println(khoangcach); 
-}
-
-/*********** chương trình quay cảm biến xang trái *********/
-void quaycbsangtrai()
-{
-
-    myservo.write(180);              // tell servo to go to position in variable 'pos'
-    delay(1000);
-    dokhoangcach();
-    myservo.write(90);              // tell servo to go to position in variable 'pos'  
-}
-void quaycbsangphai()
-{
-    myservo.write(0);              // tell servo to go to position in variable 'pos'
-    delay(1000);
-    dokhoangcach();
-    myservo.write(90);              // tell servo to go to position in variable 'pos'
+    Serial.println(distanceToObstacle); 
 }
 
 void rotateServo(float angle)
@@ -239,7 +133,7 @@ void rotateServo(float angle)
     Serial.print("Rote servo  angle: ");
     Serial.print(angle); // tell servo to go to position in variable
     delay(1000);
-    dokhoangcach();
+    detectObstacle();
 }
 
 void resetservo()
@@ -250,7 +144,7 @@ void resetservo()
 
 void turn(float angle)
 {
-    resetdongco(); 
+    resetWheels(); 
     float angleOnWheel = (angle/360)*4;
     float roundOnWheel = angle/360;
     float time = (roundOnWheel / angular_velocity) * 1000 * 4;
@@ -258,22 +152,22 @@ void turn(float angle)
     {
         Serial.print("turn right ");
         Serial.println(angle);
-        resetdongco();
+        resetWheels();
         digitalWrite(tien1,HIGH);
-        delay(time);
+        delay(time/1);
         
     }
     else if (angle > 90)
     {
         Serial.print("turn left ");
         Serial.println(angle);
-        resetdongco();
+        resetWheels();
         digitalWrite(tien2,HIGH);
-        delay(time / 3);
+        delay(time / 2.5);
         
     }
     
-    resetdongco();
+    resetWheels();
     delay(250);
 }
 
@@ -302,7 +196,7 @@ void findWay()
     while (angle <=  180)
     {
         rotateServo(angle);
-        arrayDistance[j] = khoangcach;
+        arrayDistance[j] = distanceToObstacle;
         arrayAngle[j] = angle;
         angle += deltaAngle;
         j++;
@@ -317,15 +211,28 @@ void findWay()
         tmpPos.x = currentPosition.x +  deltaMove* cos(curArgRad);
         tmpPos.y = currentPosition.y +  deltaMove* sin(curArgRad);
         float minDist = calculateDistance(tmpPos, destinationPosition);
-        if (minDist < distance && arrayDistance[i] > gioihan && arrayDistance[i] < 1000)
+        if(i - rangeView >= 0 && i + rangeView < samples && minDist < distance)
         {
-            Serial.print("arrayDistance ");
-            Serial.print(i);
-            Serial.print("   ");
-            Serial.println(arrayDistance[i]);
-            distance = minDist;
-            index = i;
-        }
+            int flag = 1;
+            for (int k = i - rangeView; k <= i + rangeView; k++)
+            {
+                float arg = currentAngle + arrayAngle[k] - 90;
+                if (arrayDistance[k] < limitThreshold || arrayDistance[k] > 1000 || arg == angleCollideObstacle)
+                {
+                    flag = 0;
+                    break;
+                }
+            }
+            if(flag == 1)
+            {
+                Serial.print("arrayDistance ");
+                Serial.print(i);
+                Serial.print("   ");
+                Serial.println(arrayDistance[i]);
+                distance = minDist;
+                index = i;
+            }
+        }  
     }
     
     Serial.print("Distance:");
@@ -336,14 +243,16 @@ void findWay()
     Serial.println(currentPosition.y);
     if(distance >= 1000 || (arrayAngle[index] > 180 || arrayAngle[index] < 0))
     {
+        angleCollideObstacle = currentAngle;
         turnBackward();
     }
     else
     {
         angle = arrayAngle[index];
         currentAngle += angle - 90;
+        angleCollideObstacle = -1;
         turn(angle);
-        dithang();
+        goAhead();
     }
     delay(1000);
 }
@@ -351,7 +260,7 @@ void findWay()
 void turnBackward()
 {
     Serial.println("Turn backward");
-    resetdongco(); 
+    resetWheels(); 
     digitalWrite(lui1, HIGH);
     digitalWrite(lui2, HIGH);
     //delay time for moving 1cm t = s/v
@@ -360,7 +269,7 @@ void turnBackward()
     currentPosition.x -= deltaMove * cos(curArgRad);
     currentPosition.y -= deltaMove * sin(curArgRad);
     delay(time);
-    resetdongco(); 
+    resetWheels(); 
 }
 
 float calculateDistance(struct Position p1, struct Position p2) 
